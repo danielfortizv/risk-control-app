@@ -209,15 +209,44 @@ function App() {
 
   const chartData = useMemo(() => {
     let capital = Number(settings.initialCapital || 0);
+
+    const cycleEvents = state.cycles.map((cycle) => ({
+      id: cycle.id,
+      date: cycle.date,
+      label: cycle.outcome === 'loss' ? 'Ciclo: pérdida' : `Ciclo: gana intento ${cycle.outcome}`,
+      amount: Number(cycle.net || 0),
+      type: 'cycle',
+    }));
+
+    const ledgerEvents = state.ledger.map((item) => ({
+      id: item.id,
+      date: item.date,
+      label: item.type === 'withdrawal' ? 'Retiro' : 'Depósito',
+      amount: item.type === 'withdrawal' ? -Number(item.amount || 0) : Number(item.amount || 0),
+      type: item.type,
+    }));
+
+    const events = [...cycleEvents, ...ledgerEvents].sort((a, b) => {
+      const dateDiff = new Date(a.date) - new Date(b.date);
+      if (dateDiff !== 0) return dateDiff;
+      return String(a.id).localeCompare(String(b.id));
+    });
+
     const rows = [{ name: 'Inicio', capital }];
-    [...state.cycles]
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .forEach((cycle, idx) => {
-        capital += Number(cycle.net || 0);
-        rows.push({ name: `C${idx + 1}`, capital: Number(capital.toFixed(2)) });
+
+    events.forEach((event, idx) => {
+      capital += event.amount;
+      rows.push({
+        name: `${idx + 1}`,
+        capital: Number(capital.toFixed(2)),
+        evento: event.label,
+        cambio: Number(event.amount.toFixed(2)),
+        fecha: event.date,
       });
+    });
+
     return rows;
-  }, [state.cycles, settings.initialCapital]);
+  }, [state.cycles, state.ledger, settings.initialCapital]);
 
   const totalWithdrawals = state.ledger
     .filter((item) => item.type === 'withdrawal')
@@ -350,7 +379,7 @@ function App() {
         <div>
           <strong>Control de riesgo</strong>
           <p>
-            El “monto recomendado para apostar” se muestra como $0. La app solo calcula un límite máximo hipotético según tus reglas: apuesta base en potencia de 2, máximo {pct(Number(settings.maxBaseBetPct || 0))} del capital, y exposición total del ciclo de hasta 7 veces la base.
+            La app no recomienda apostar. Muestra métricas de control como capital actual, ganancias netas, retiros, depósitos, límites hipotéticos por reglas, exposición máxima y riesgo acumulado. El límite base usa potencia de 2 y máximo {pct(Number(settings.maxBaseBetPct || 0))} del capital.
           </p>
         </div>
       </section>
@@ -358,8 +387,9 @@ function App() {
       <section className="grid stats-grid">
         <StatCard icon={Wallet} label="Capital actual" value={currency(settings.currentCapital)} hint={`Meta: ${currency(settings.goal)}`} />
         <StatCard icon={Target} label="Progreso hacia la meta" value={`${progress.toFixed(1)}%`} hint={`${projection.daysLeft} días restantes`} />
-        <StatCard icon={Calculator} label="Límite base hipotético" value={currency(projection.baseBet)} hint={`Exposición máx. ciclo: ${currency(projection.maxCycleExposure)}`} />
         <StatCard icon={TrendingUp} label="Ganancias netas" value={currency(totalProfit)} hint={`Retiro sugerido: ${currency(recommendedWithdrawal)}`} />
+        <StatCard icon={PiggyBank} label="Retiros totales" value={currency(totalWithdrawals)} hint={`Depósitos: ${currency(totalDeposits)}`} />
+        <StatCard icon={Calculator} label="Límite base hipotético" value={currency(projection.baseBet)} hint={`Exposición máx. ciclo: ${currency(projection.maxCycleExposure)}`} />
       </section>
 
       <section className="grid two-cols">
@@ -452,7 +482,13 @@ function App() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis />
-              <Tooltip formatter={(value) => currency(value)} />
+              <Tooltip
+                formatter={(value, name) => (name === 'capital' || name === 'cambio' ? currency(value) : value)}
+                labelFormatter={(label, payload) => {
+                  const item = payload?.[0]?.payload;
+                  return item?.fecha ? `${item.fecha} · ${item.evento || label}` : label;
+                }}
+              />
               <Area type="monotone" dataKey="capital" strokeWidth={2} fillOpacity={0.2} />
             </AreaChart>
           </ResponsiveContainer>
