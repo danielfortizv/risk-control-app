@@ -6,8 +6,8 @@ import {
   Download,
   PiggyBank,
   RefreshCcw,
-  ShieldCheck,
   Target,
+  TrendingUp,
   Upload,
   Wallet,
 } from 'lucide-react';
@@ -358,8 +358,8 @@ function App() {
       <section className="grid stats-grid">
         <StatCard icon={Wallet} label="Capital actual" value={currency(settings.currentCapital)} hint={`Meta: ${currency(settings.goal)}`} />
         <StatCard icon={Target} label="Progreso hacia la meta" value={`${progress.toFixed(1)}%`} hint={`${projection.daysLeft} días restantes`} />
-        <StatCard icon={ShieldCheck} label="Apuesta recomendada" value={currency(0)} hint="Modo seguro: no optimiza apuestas" />
         <StatCard icon={Calculator} label="Límite base hipotético" value={currency(projection.baseBet)} hint={`Exposición máx. ciclo: ${currency(projection.maxCycleExposure)}`} />
+        <StatCard icon={TrendingUp} label="Ganancias netas" value={currency(totalProfit)} hint={`Retiro sugerido: ${currency(recommendedWithdrawal)}`} />
       </section>
 
       <section className="grid two-cols">
