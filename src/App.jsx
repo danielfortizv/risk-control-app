@@ -93,10 +93,23 @@ function expectedCycleProfit(baseBet, probabilities, payoutRate) {
 
 function netForOutcome(baseBet, outcome, payoutRate) {
   const bets = [baseBet, baseBet * 2, baseBet * 4];
+  if (outcome === 'single-loss') return -baseBet;
   if (outcome === 'loss') return -bets.reduce((a, b) => a + b, 0);
   const idx = Number(outcome) - 1;
   const previousLosses = bets.slice(0, idx).reduce((a, b) => a + b, 0);
   return bets[idx] * payoutRate - previousLosses;
+}
+
+function getOutcomeLabel(outcome) {
+  if (outcome === 'single-loss') return 'Pierde solo base';
+  if (outcome === 'loss') return 'Pierde 3';
+  return `Gana ${outcome}`;
+}
+
+function didReachAttempt(outcome, attemptIndex) {
+  if (outcome === 'single-loss') return attemptIndex === 0;
+  if (outcome === 'loss') return true;
+  return Number(outcome) >= attemptIndex + 1;
 }
 
 function getAttemptStats(cycles, attemptIndex, alpha, beta) {
@@ -105,10 +118,9 @@ function getAttemptStats(cycles, attemptIndex, alpha, beta) {
 
   for (const cycle of cycles) {
     const outcome = cycle.outcome;
-    const outcomeNum = outcome === 'loss' ? 4 : Number(outcome);
-    if (outcomeNum >= attemptIndex + 1) {
+    if (didReachAttempt(outcome, attemptIndex)) {
       reached += 1;
-      if (outcomeNum === attemptIndex + 1) wins += 1;
+      if (Number(outcome) === attemptIndex + 1) wins += 1;
     }
   }
 
@@ -213,7 +225,7 @@ function App() {
     const cycleEvents = state.cycles.map((cycle) => ({
       id: cycle.id,
       date: cycle.date,
-      label: cycle.outcome === 'loss' ? 'Ciclo: pérdida' : `Ciclo: gana intento ${cycle.outcome}`,
+      label: `Ciclo: ${getOutcomeLabel(cycle.outcome)}`,
       amount: Number(cycle.net || 0),
       type: 'cycle',
     }));
@@ -454,6 +466,7 @@ function App() {
               <option value="1">Ganó intento 1</option>
               <option value="2">Ganó intento 2</option>
               <option value="3">Ganó intento 3</option>
+              <option value="single-loss">Perdió solo la apuesta base</option>
               <option value="loss">Perdió los 3</option>
             </select></label>
             <label>Nota<input value={cycleForm.note} onChange={(e) => setCycleForm({ ...cycleForm, note: e.target.value })} placeholder="Opcional" /></label>
@@ -503,7 +516,7 @@ function App() {
               <thead><tr><th>Fecha</th><th>Base</th><th>Resultado</th><th>Neto</th></tr></thead>
               <tbody>
                 {state.cycles.slice(0, 20).map((cycle) => (
-                  <tr key={cycle.id}><td>{cycle.date}</td><td>{currency(cycle.baseBet)}</td><td>{cycle.outcome === 'loss' ? 'Pierde 3' : `Gana ${cycle.outcome}`}</td><td className={cycle.net >= 0 ? 'positive' : 'negative'}>{currency(cycle.net)}</td></tr>
+                  <tr key={cycle.id}><td>{cycle.date}</td><td>{currency(cycle.baseBet)}</td><td>{getOutcomeLabel(cycle.outcome)}</td><td className={cycle.net >= 0 ? 'positive' : 'negative'}>{currency(cycle.net)}</td></tr>
                 ))}
               </tbody>
             </table>
