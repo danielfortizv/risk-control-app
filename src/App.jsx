@@ -92,9 +92,9 @@ function expectedCycleProfit(baseBet, probabilities, payoutRate) {
 }
 
 function netForOutcome(baseBet, outcome, payoutRate) {
-  const bets = [baseBet, baseBet * 2, baseBet * 4];
+  const bets = [baseBet, baseBet * 2, baseBet * 4, baseBet * 8];
   if (outcome === 'single-loss') return -baseBet;
-  if (outcome === 'loss') return -bets.reduce((a, b) => a + b, 0);
+  if (outcome === 'loss') return -bets.slice(0, 3).reduce((a, b) => a + b, 0);
   const idx = Number(outcome) - 1;
   const previousLosses = bets.slice(0, idx).reduce((a, b) => a + b, 0);
   return bets[idx] * payoutRate - previousLosses;
@@ -466,6 +466,7 @@ function App() {
               <option value="1">Ganó intento 1</option>
               <option value="2">Ganó intento 2</option>
               <option value="3">Ganó intento 3</option>
+              <option value="4">Ganó intento 4</option>
               <option value="single-loss">Perdió solo la apuesta base</option>
               <option value="loss">Perdió los 3</option>
             </select></label>
